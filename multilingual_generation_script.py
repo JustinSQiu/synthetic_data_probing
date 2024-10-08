@@ -2,6 +2,7 @@ import pandas as pd
 import os
 import glob
 import random
+from datasets import load_dataset
 
 def convert_complex_multisim():
     root_folder = 'MultiSim/data'
@@ -88,6 +89,59 @@ def convert_formal_xformal():
     base_dir = 'XFormal'
     create_tsv_for_each_language(base_dir, num_samples=100)
 
+def convert_toxic_paradetox():
+    ds = load_dataset("textdetox/multilingual_paradetox")
+
+    def sample_and_create_tsv(dataset, language, num_samples=100):
+        """Sample the dataset and create a TSV file for each language."""
+        data = {
+            "anchor1": [],
+            "anchor2": [],
+            "alternative1": [],
+            "alternative2": []
+        }
+
+        # Get the number of rows in the dataset for the specific language
+        num_rows = dataset.num_rows
+        
+        # Sample indices (2 rows for each output line)
+        sampled_indices = random.sample(range(num_rows), min(num_samples * 2, num_rows))
+        
+        for i in range(0, len(sampled_indices), 2):
+            idx_anchor = sampled_indices[i]
+            idx_alternative = sampled_indices[i + 1]
+            
+            # Get anchor sentences
+            anchor1 = dataset[idx_anchor]['toxic_sentence']
+            anchor2 = dataset[idx_anchor]['neutral_sentence']
+            
+            # Get alternative sentences
+            alternative1 = dataset[idx_alternative]['toxic_sentence']
+            alternative2 = dataset[idx_alternative]['neutral_sentence']
+            
+            # Append to the data dictionary
+            data["anchor1"].append(anchor1)
+            data["anchor2"].append(anchor2)
+            data["alternative1"].append(alternative1)
+            data["alternative2"].append(alternative2)
+
+        # Create a pandas DataFrame
+        df = pd.DataFrame(data)
+        df['correct_alternative'] = 1
+        df['style_type'] = 'toxic'
+        df['language'] = lang.lower()
+
+        # Write the DataFrame to a TSV file for the specific language
+        output_file = f'multilingual_output/toxic/{language}_toxic.tsv'  # File name based on language
+        df.to_csv(output_file, sep='\t', index=False)
+        print(f"TSV file saved for {language} at {output_file}")
+
+    # Loop through each language in the dataset and create TSV files
+    for lang in ds:
+        sample_and_create_tsv(ds[lang], lang, num_samples=100)
+
 
 # convert_complex_multisim()
-convert_formal_xformal()
+# convert_formal_xformal()
+convert_toxic_paradetox()
+
