@@ -140,8 +140,76 @@ def convert_toxic_paradetox():
     for lang in ds:
         sample_and_create_tsv(ds[lang], lang, num_samples=100)
 
+def convert_positive_indian():
+    output_dir = 'multilingual_stel/positive'
+    def sample_and_create_tsv(input_csv, output_tsv, lang, num_samples=100):
+        """Convert a CSV into a TSV with sampled anchor and alternative pairs."""
+        # Read the CSV file into a pandas DataFrame
+        df = pd.read_csv(input_csv, delimiter=',')
+
+        # Ensure enough rows to sample
+        if len(df) < num_samples * 2:
+            print(f"Warning: Not enough data in {input_csv} for 100 samples.")
+            num_samples = len(df) // 2
+
+        # Sample 2 * num_samples unique row indices
+        sampled_indices = random.sample(range(len(df)), num_samples * 2)
+
+        # Prepare data storage for sampled rows
+        data = {
+            "anchor1": [],
+            "anchor2": [],
+            "alternative1": [],
+            "alternative2": []
+        }
+
+        # Sample anchor and alternative pairs
+        print(df)
+        for i in range(0, len(sampled_indices), 2):
+            idx_anchor = sampled_indices[i]
+            idx_alt = sampled_indices[i + 1]
+
+            # Extract anchor and alternative pairs
+            anchor1 = df.iloc[idx_anchor]["NEGATIVE"]
+            anchor2 = df.iloc[idx_anchor]["POSITIVE"]
+            alternative1 = df.iloc[idx_alt]["NEGATIVE"]
+            alternative2 = df.iloc[idx_alt]["POSITIVE"]
+
+            # Append to the data dictionary
+            data["anchor1"].append(anchor1)
+            data["anchor2"].append(anchor2)
+            data["alternative1"].append(alternative1)
+            data["alternative2"].append(alternative2)
+            data['correct_alternative'] = 1
+            data['style_type'] = 'simplicity'
+            data['language'] = lang
+
+        # Create a DataFrame from the sampled data
+        output_df = pd.DataFrame(data)
+
+        # Write the DataFrame to a TSV file
+        output_df.to_csv(output_tsv, sep='\t', index=False)
+        print(f"TSV file saved at {output_tsv}")
+
+    def process_multilingual_datasets(base_dir):
+        for lang in os.listdir(base_dir):
+            lang_dir = os.path.join(base_dir, lang)
+            try:
+                csv_files = [f for f in os.listdir(lang_dir) if f.endswith(".csv")]
+                input_csv = os.path.join(lang_dir, csv_files[0])
+                output_tsv = os.path.join(output_dir, f"{lang}_positive.tsv")
+
+                sample_and_create_tsv(input_csv, output_tsv, lang)
+            except:
+                pass
+    # Define the base directory containing language folders
+    base_dir = "multilingual-tst-datasets"
+
+    # Process all language folders
+    process_multilingual_datasets(base_dir)
+
 
 # convert_complex_multisim()
 # convert_formal_xformal()
-convert_toxic_paradetox()
-
+# convert_toxic_paradetox()
+convert_positive_indian()
