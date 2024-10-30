@@ -121,7 +121,7 @@ def convert_positive_indian():
             data["negative"].append(anchor2)
 
         output_df = pd.DataFrame(data, columns=['positive', 'negative'])
-        output_df['style_type'] = 'simplicity'
+        output_df['style_type'] = 'positivity'
         output_df['language'] = lang
         output_df.to_csv(output_tsv, sep='\t', index=False)
         print(f"TSV file saved at {output_tsv}")
@@ -144,10 +144,10 @@ def convert_positive_indian():
     process_multilingual_datasets(base_dir)
 
 
-# convert_complex_multisim()
-# convert_formal_xformal()
-# convert_toxic_paradetox()
-# convert_positive_indian()
+convert_complex_multisim()
+convert_formal_xformal()
+convert_toxic_paradetox()
+convert_positive_indian()
 
 def merge_csvs():
     # Step 1: Load and concatenate all CSVs
