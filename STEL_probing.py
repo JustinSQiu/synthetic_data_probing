@@ -2,66 +2,54 @@ from datadreamer import DataDreamer
 from datadreamer.llms import OpenAI
 from datadreamer.steps import DataFromPrompt, Embed, CosineSimilarity, concat, HFHubDataSource
 from datadreamer.embedders import SentenceTransformersEmbedder
-import os
 import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
-import matplotlib.pyplot as plt
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import DataLoader, TensorDataset, random_split
-import numpy as np
-import matplotlib.pyplot as plt
 import math
-import re
 import pandas as pd
-import os
-import tabulate
 
-NUM_ROWS_PER_CATEGORY = 10
+NUM_ROWS_PER_CATEGORY = 100
 
-with DataDreamer("./output"):
+with DataDreamer('./output'):
     stel_dataset = HFHubDataSource(
-        "Lexical Features",
-        path="StyleDistance/synthstel",
-        split="test"
+        'Lexical Features',
+        path='justinsunqiu/multilingual_stel_test',
+        split='data'
     )
 
 
 def compute_embeddings(
         dataset_pos, dataset_neg, model: str
 ):
-    with DataDreamer("./output"):
+    with DataDreamer('./output'):
         pos_embedded_data = Embed(
-            name = f"{model.replace('/', ' ')} Embeddings for Positive Examples",
+            name = f'{model.replace("/", " ")} Embeddings for Positive Examples',
             inputs = {
-                "texts": dataset_pos
+                'texts': dataset_pos
             },
             args = {
-                "embedder": SentenceTransformersEmbedder(
+                'embedder': SentenceTransformersEmbedder(
                     model_name=model
                 ),
-                "truncate": True
+                'truncate': True
             },
             outputs = {
-                "texts": "sentences",
-                "embeddings": "embeddings"
+                'texts': 'sentences',
+                'embeddings': 'embeddings'
             },
         )
         neg_embedded_data = Embed(
-            name = f"{model.replace('/', ' ')} Embeddings for Negative Examples",
+            name = f'{model.replace("/", " ")} Embeddings for Negative Examples',
             inputs = {
-                "texts": dataset_neg
+                'texts': dataset_neg
             },
             args = {
-                "embedder": SentenceTransformersEmbedder(
+                'embedder': SentenceTransformersEmbedder(
                     model_name=model
                 ),
-                "truncate": True
+                'truncate': True
             },
             outputs = {
-                "texts": "sentences",
-                "embeddings": "embeddings"
+                'texts': 'sentences',
+                'embeddings': 'embeddings'
             },
         )
     return pos_embedded_data, neg_embedded_data
@@ -69,8 +57,8 @@ def compute_embeddings(
 def convert_embeddings(pos_embedded_data, neg_embedded_data):
     paired_embeddings = []
     for i in range(len(pos_embedded_data.output) // NUM_ROWS_PER_CATEGORY):
-        pos_embeddings = np.array(pos_embedded_data.output["embeddings"][i * NUM_ROWS_PER_CATEGORY : (i+1) * NUM_ROWS_PER_CATEGORY])
-        neg_embeddings = np.array(neg_embedded_data.output["embeddings"][i * NUM_ROWS_PER_CATEGORY : (i+1) * NUM_ROWS_PER_CATEGORY])
+        pos_embeddings = np.array(pos_embedded_data.output['embeddings'][i * NUM_ROWS_PER_CATEGORY : (i+1) * NUM_ROWS_PER_CATEGORY])
+        neg_embeddings = np.array(neg_embedded_data.output['embeddings'][i * NUM_ROWS_PER_CATEGORY : (i+1) * NUM_ROWS_PER_CATEGORY])
         paired = [(pos, neg) for pos, neg in zip(pos_embeddings, neg_embeddings)]
         paired_embeddings.append(paired)
     return paired_embeddings
@@ -142,7 +130,7 @@ def STEL_benchmark(dataset_pos, dataset_neg, model, type='STEL'):
 def STEL_categories():
     categories = []
     for i in range(len(stel_dataset.output) // NUM_ROWS_PER_CATEGORY):
-        categories.append(stel_dataset.output['feature'][i * NUM_ROWS_PER_CATEGORY])
+        categories.append(stel_dataset.output['style_type'][i * NUM_ROWS_PER_CATEGORY] + ' ' + stel_dataset.output['language'][i * NUM_ROWS_PER_CATEGORY])
     return categories
 
 def STEL_table(model, type='STEL'):
@@ -165,8 +153,7 @@ def merge_dfs(dfs):
 
 
 tpe = 'STEL'
-
-models = ['AnnaWegmann/Style-Embedding', 'google-bert/bert-base-cased', 'FacebookAI/roberta-base', 'SynthSTEL/styledistance', 'SynthSTEL/styledistance_synthetic_only', 'StyleDistance/styledistance_synthetic_only_ablation_hard', 'StyleDistance/styledistance_synthetic_only_ablation_easy']
+models = ['AnnaWegmann/Style-Embedding', 'SynthSTEL/styledistance', 'SynthSTEL/styledistance_synthetic_only', 'google-bert/bert-base-cased', 'FacebookAI/roberta-base']
 tables = [STEL_table(model, type=tpe) for model in models]
 merged_dfs = merge_dfs(tables)
 print(merged_dfs.to_markdown())

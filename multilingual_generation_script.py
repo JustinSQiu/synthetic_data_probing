@@ -6,7 +6,7 @@ from datasets import load_dataset
 
 def convert_complex_multisim():
     root_folder = 'MultiSim/data'
-    output_folder = 'multilingual_output/complex'
+    output_folder = 'multilingual_stel/complex'
     os.makedirs(output_folder, exist_ok=True)
 
     for language_folder in os.listdir(root_folder):
@@ -82,7 +82,7 @@ def convert_formal_xformal():
             df['style_type'] = 'formal'
             df['language'] = lang.lower()
 
-            output_file = f'multilingual_output/formal/{lang.lower()}_formal.tsv'
+            output_file = f'multilingual_stel/formal/{lang.lower()}_formal.tsv'
             df.to_csv(output_file, sep='\t', index=False)
             print(f"TSV file saved for {lang} at {output_file}")
 
@@ -132,7 +132,7 @@ def convert_toxic_paradetox():
         df['language'] = lang.lower()
 
         # Write the DataFrame to a TSV file for the specific language
-        output_file = f'multilingual_output/toxic/{language}_toxic.tsv'  # File name based on language
+        output_file = f'multilingual_stel/toxic/{language}_toxic.tsv'  # File name based on language
         df.to_csv(output_file, sep='\t', index=False)
         print(f"TSV file saved for {language} at {output_file}")
 
@@ -211,5 +211,5 @@ def convert_positive_indian():
 
 # convert_complex_multisim()
 # convert_formal_xformal()
-# convert_toxic_paradetox()
-convert_positive_indian()
+convert_toxic_paradetox()
+# convert_positive_indian()
