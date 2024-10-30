@@ -152,7 +152,7 @@ def merge_dfs(dfs):
     return merged_df
 
 
-tpe = 'STEL'
+tpe = 'STEL-or-content'
 models = ['AnnaWegmann/Style-Embedding', 'SynthSTEL/styledistance', 'SynthSTEL/styledistance_synthetic_only', 'google-bert/bert-base-cased', 'FacebookAI/roberta-base']
 tables = [STEL_table(model, type=tpe) for model in models]
 merged_dfs = merge_dfs(tables)
