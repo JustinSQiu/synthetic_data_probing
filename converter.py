@@ -1,5 +1,6 @@
-import pandas as pd
 from io import StringIO
+
+import pandas as pd
 
 data = """
 | Metric           |   Wegmann Embeddings |   StyleDistance Embeddings |   StyleDistance Synthetic Only Embeddings |   bert-base-cased Embeddings |   roberta-base Embeddings |   xlm-roberta-base Embeddings |   lisa Embeddings |   luar Embeddings |

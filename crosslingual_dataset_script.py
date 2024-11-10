@@ -117,14 +117,106 @@ def convert_formal_crosslingual():
 
 
 def convert_formal_crosslingual_stel():
-    pass
+    pairwise_output_folder = 'pairwise_multilingual_raw_output/formal_crosslingual_stel'
+    dataset = load_dataset('justinsunqiu/crosslingual_stel', trust_remote_code=True)
+    NUM_ROWS_PER_CATEGORY = 100
+    paired_sentences = []
+    for i in range(dataset.num_rows['train'] // NUM_ROWS_PER_CATEGORY):
+        pos_texts = [pos_text for pos_text in dataset['train']['positive'][i * NUM_ROWS_PER_CATEGORY : (i + 1) * NUM_ROWS_PER_CATEGORY]]
+        neg_texts = [neg_text for neg_text in dataset['train']['negative'][i * NUM_ROWS_PER_CATEGORY : (i + 1) * NUM_ROWS_PER_CATEGORY]]
+        paired = [(pos, neg) for pos, neg in zip(pos_texts, neg_texts)]
+        paired_sentences.append(tuple(paired))
+    categories = []
+    languages = []
+    for i in range(dataset.num_rows['train'] // NUM_ROWS_PER_CATEGORY):
+        languages.append(dataset['train']['language'][i * NUM_ROWS_PER_CATEGORY])
+        for j in range(i + 1, dataset.num_rows['train'] // NUM_ROWS_PER_CATEGORY):
+            categories.append(
+                dataset['train']['style_type'][i * NUM_ROWS_PER_CATEGORY]
+                + '_'
+                + dataset['train']['language'][i * NUM_ROWS_PER_CATEGORY]
+                + '-'
+                + dataset['train']['language'][j * NUM_ROWS_PER_CATEGORY]
+            )
+    cnt = 0
+    for i in range(len(paired_sentences)):
+        paired_1 = paired_sentences[i]
+        for j in range(i + 1, len(paired_sentences)):
+            rows = []
+            pairwise_tsv_file = os.path.join(pairwise_output_folder, f'{categories[cnt]}_stel.tsv')
+            paired_2 = paired_sentences[j]
+            for k in range(len(paired_1)):
+                anchor_pos, anchor_neg = paired_1[k]  # L1C1S1, L1C1S2
+                for l in range(len(paired_2)):
+                    if k == l:
+                        continue  # Skip when content is equal
+                    alt_pos, alt_neg = paired_2[l]  # L2C2S1 L2C2S2
+                    rows.append([anchor_pos, anchor_neg, alt_pos, alt_neg])
+            df = pd.DataFrame(rows, columns=['anchor_1', 'alternative_1', 'anchor_2', 'alternative_2'])
+            df['style_type'] = 'formality'
+            df['language_1'] = languages[i]
+            df['language_2'] = languages[j]
+
+            df.to_csv(pairwise_tsv_file, sep='\t', index=False)
+            cnt += 1
 
 
 def convert_formal_crosslingual_stel_or_content():
-    pass
+    # same as above except replace to be stel-or-content setup and make not pairwise for categories and data
+    pairwise_output_folder = 'pairwise_multilingual_raw_output/formal_crosslingual_stel_or_content'
+    dataset = load_dataset('justinsunqiu/crosslingual_stel', trust_remote_code=True)
+    NUM_ROWS_PER_CATEGORY = 100
+    paired_sentences = []
+    for i in range(dataset.num_rows['train'] // NUM_ROWS_PER_CATEGORY):
+        pos_texts = [pos_text for pos_text in dataset['train']['positive'][i * NUM_ROWS_PER_CATEGORY : (i + 1) * NUM_ROWS_PER_CATEGORY]]
+        neg_texts = [neg_text for neg_text in dataset['train']['negative'][i * NUM_ROWS_PER_CATEGORY : (i + 1) * NUM_ROWS_PER_CATEGORY]]
+        paired = [(pos, neg) for pos, neg in zip(pos_texts, neg_texts)]
+        paired_sentences.append(tuple(paired))
+    categories = []
+    languages = []
+    for i in range(dataset.num_rows['train'] // NUM_ROWS_PER_CATEGORY):
+        languages.append(dataset['train']['language'][i * NUM_ROWS_PER_CATEGORY])
+        for j in range(dataset.num_rows['train'] // NUM_ROWS_PER_CATEGORY):
+            if i == j:
+                continue
+            categories.append(
+                dataset['train']['style_type'][i * NUM_ROWS_PER_CATEGORY]
+                + '_'
+                + dataset['train']['language'][i * NUM_ROWS_PER_CATEGORY]
+                + '-'
+                + dataset['train']['language'][j * NUM_ROWS_PER_CATEGORY]
+            )
+    cnt = 0
+    for i in range(len(paired_sentences)):
+        paired_1 = paired_sentences[i]
+        for j in range(len(paired_sentences)):
+            if i == j:
+                continue
+            rows = []
+            pairwise_tsv_file = os.path.join(pairwise_output_folder, f'{categories[cnt]}_stel_or_content.tsv')
+            paired_2 = paired_sentences[j]
+            for k in range(len(paired_1)):
+                anchor_pos, _ = paired_1[k]  # L1C1S1, L1C1S2
+                _, same_content_diff_language_style = paired_2[k]  # L2C1S2
+                for l in range(len(paired_2)):
+                    if k == l:
+                        continue  # Skip when content is equal
+                    alt_pos, _ = paired_2[l]  # L2C2S1 L2C2S2
+                    alt_neg = same_content_diff_language_style
+                    rows.append([anchor_pos, '', alt_pos, alt_neg])
+            df = pd.DataFrame(rows, columns=['anchor_1', 'alternative_1', 'anchor_2', 'alternative_2'])
+            df['style_type'] = 'formality'
+            df['language_1'] = languages[i]
+            df['language_2'] = languages[j]
+            print(df)
+
+            df.to_csv(pairwise_tsv_file, sep='\t', index=False)
+            cnt += 1
 
 
-convert_formal_crosslingual()
+# convert_formal_crosslingual()
+# convert_formal_crosslingual_stel()
+convert_formal_crosslingual_stel_or_content()
 
 
 def merge_csvs():
@@ -134,6 +226,6 @@ def merge_csvs():
     return dataset
 
 
-dataset = merge_csvs()
+# dataset = merge_csvs()
 # dataset.push_to_hub('StyleDistance/crosslingual_stel')
 # dataset.push_to_hub('crosslingual_stel')
