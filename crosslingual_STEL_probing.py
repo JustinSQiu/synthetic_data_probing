@@ -6,13 +6,17 @@ import pandas as pd
 from datadreamer import DataDreamer
 from datadreamer.embedders import Embedder, SentenceTransformersEmbedder
 from datadreamer.llms import OpenAI
-from datadreamer.steps import (CosineSimilarity, DataFromPrompt, Embed,
-                               HFHubDataSource, concat)
+from datadreamer.steps import (
+    CosineSimilarity,
+    DataFromPrompt,
+    Embed,
+    HFHubDataSource,
+    concat,
+)
 from transformers import AutoModel, AutoTokenizer
 
 from luar_utils import load_luar_as_sentence_transformer
-from stylegenome_lisa_sfam.lisa_inference_utils import (load_lisa,
-                                                        predict_lisa_embedder)
+from stylegenome_lisa_sfam.lisa_inference_utils import load_lisa, predict_lisa_embedder
 
 NUM_ROWS_PER_CATEGORY = 100
 
@@ -20,6 +24,7 @@ with DataDreamer('./output'):
     stel_dataset = HFHubDataSource(
         'Lexical Features', path='justinsunqiu/crosslingual_stel', split='train'
     )
+
 
 def save_embeddings(paired_embeddings, filename):
     with open('output_embeddings/' + filename, 'wb') as file:
@@ -127,61 +132,70 @@ def compute_accuracy_STEL(paired_embeddings_1: list, paired_embeddings_2: list):
     rand = 0
     incorrect = 0
     for i in range(len(paired_embeddings_1)):
-        anchor_pos, anchor_neg = paired_embeddings_1[i]
+        anchor_pos, anchor_neg = paired_embeddings_1[i]  # L1C1S1, L1C1S2
         norm_anchor_pos, norm_anchor_neg = anchor_pos / np.linalg.norm(
             anchor_pos
         ), anchor_neg / np.linalg.norm(anchor_neg)
-        alt_pos, alt_neg = paired_embeddings_2[i]
-        norm_alt_pos, norm_alt_neg = alt_pos / np.linalg.norm(
-            alt_pos
-        ), alt_neg / np.linalg.norm(alt_neg)
-        sim1 = np.dot(norm_anchor_pos, norm_alt_pos)
-        sim2 = np.dot(norm_anchor_neg, norm_alt_neg)
-        sim3 = np.dot(norm_anchor_pos, norm_alt_neg)
-        sim4 = np.dot(norm_anchor_neg, norm_alt_pos)
-        if math.pow(1 - sim1, 2) + math.pow(1 - sim2, 2) == math.pow(
-            1 - sim3, 2
-        ) + math.pow(1 - sim4, 2):
-            accuracy += 0.5
-            rand += 1
-        elif math.pow(1 - sim1, 2) + math.pow(1 - sim2, 2) < math.pow(
-            1 - sim3, 2
-        ) + math.pow(1 - sim4, 2):
-            accuracy += 1
-            correct += 1
-        else:
-            accuracy += 0
-            incorrect += 1
-    return accuracy / (len(paired_embeddings_1))
+        for j in range(len(paired_embeddings_2)):
+            if i == j:
+                continue  # Skip when content is equal
+            alt_pos, alt_neg = paired_embeddings_2[j]  # L2C2S1 L2C2S2
+            norm_alt_pos, norm_alt_neg = alt_pos / np.linalg.norm(
+                alt_pos
+            ), alt_neg / np.linalg.norm(alt_neg)
+            sim1 = np.dot(norm_anchor_pos, norm_alt_pos)
+            sim2 = np.dot(norm_anchor_neg, norm_alt_neg)
+            sim3 = np.dot(norm_anchor_pos, norm_alt_neg)
+            sim4 = np.dot(norm_anchor_neg, norm_alt_pos)
+            if math.pow(1 - sim1, 2) + math.pow(1 - sim2, 2) == math.pow(
+                1 - sim3, 2
+            ) + math.pow(1 - sim4, 2):
+                accuracy += 0.5
+                rand += 1
+            elif math.pow(1 - sim1, 2) + math.pow(1 - sim2, 2) < math.pow(
+                1 - sim3, 2
+            ) + math.pow(1 - sim4, 2):
+                accuracy += 1
+                correct += 1
+            else:
+                accuracy += 0
+                incorrect += 1
+    return accuracy / (len(paired_embeddings_1) * (len(paired_embeddings_2) - 1))  # don't divide by 2 because we are doing every combination
 
 
-def compute_accuracy_STEL_or_content(paired_embeddings_1: list, paired_embeddings_2: list):
+def compute_accuracy_STEL_or_content(
+    paired_embeddings_1: list, paired_embeddings_2: list
+):
     accuracy = 0
     correct = 0
     rand = 0
     incorrect = 0
     for i in range(len(paired_embeddings_1)):
-        anchor_pos, anchor_neg = paired_embeddings_1[i]
-        norm_anchor_pos, norm_anchor_neg = anchor_pos / np.linalg.norm(
-            anchor_pos
-        ), anchor_neg / np.linalg.norm(anchor_neg)
-        alt_pos, alt_neg = paired_embeddings_2[i]
-        norm_alt_pos, norm_alt_neg = alt_pos / np.linalg.norm(
-            alt_pos
-        ), alt_neg / np.linalg.norm(alt_neg)
-        norm_alt_neg = norm_anchor_neg
-        sim1 = np.dot(norm_anchor_pos, norm_alt_pos)
-        sim2 = np.dot(norm_anchor_pos, norm_alt_neg)
-        if sim1 == sim2:
-            accuracy += 0.5
-            rand += 1
-        elif sim1 > sim2:
-            accuracy += 1
-            correct += 1
-        else:
-            accuracy += 0
-            incorrect += 1
-    return accuracy / (len(paired_embeddings_1))
+        anchor_pos, _ = paired_embeddings_1[i]  # L1C1S1, L1C1S2
+        norm_anchor_pos, _ = anchor_pos / np.linalg.norm(anchor_pos), _
+        _, same_content_diff_language_style = paired_embeddings_2[i]  # L2C1S2
+        norm_same_content_diff_language_style = (
+            same_content_diff_language_style
+            / np.linalg.norm(same_content_diff_language_style)
+        )
+        for j in range(len(paired_embeddings_2)):
+            if i == j:
+                continue  # Skip when content is equal
+            alt_pos, _ = paired_embeddings_2[j]  # L2C2S1, L2C2S2
+            norm_alt_pos, _ = alt_pos / np.linalg.norm(alt_pos), _
+            norm_alt_neg = norm_same_content_diff_language_style
+            sim1 = np.dot(norm_anchor_pos, norm_alt_pos)  # L1C1S1, L2C2S1
+            sim2 = np.dot(norm_anchor_pos, norm_alt_neg)  # L1C1S1, L2C1S2
+            if sim1 == sim2:
+                accuracy += 0.5
+                rand += 1
+            elif sim1 > sim2:
+                accuracy += 1
+                correct += 1
+            else:
+                accuracy += 0
+                incorrect += 1
+    return accuracy / (len(paired_embeddings_1) * (len(paired_embeddings_2) - 1))  # don't divide by 2 because we are doing every combination
 
 
 def STEL_benchmark(dataset_pos, dataset_neg, model_name, model, type='STEL'):
@@ -197,7 +211,7 @@ def STEL_benchmark(dataset_pos, dataset_neg, model_name, model, type='STEL'):
     accuracies = []
     for i in range(len(paired_embeddings)):
         paired_1 = paired_embeddings[i]
-        for j in range(i+1, len(paired_embeddings)):
+        for j in range(i + 1, len(paired_embeddings)):
             paired_2 = paired_embeddings[j]
             if type == 'STEL':
                 accuracies.append(compute_accuracy_STEL(paired_1, paired_2))
@@ -210,7 +224,7 @@ def STEL_benchmark(dataset_pos, dataset_neg, model_name, model, type='STEL'):
 def STEL_categories():
     categories = []
     for i in range(len(stel_dataset.output) // NUM_ROWS_PER_CATEGORY):
-        for j in range(i+1, len(stel_dataset.output) // NUM_ROWS_PER_CATEGORY):
+        for j in range(i + 1, len(stel_dataset.output) // NUM_ROWS_PER_CATEGORY):
             categories.append(
                 stel_dataset.output['style_type'][i * NUM_ROWS_PER_CATEGORY]
                 + ' '
@@ -248,7 +262,7 @@ def merge_dfs(dfs):
     return merged_df
 
 
-tpe = 'STEL'
+tpe = 'STEL-or-content'
 models = [
     ('Wegmann', SentenceTransformersEmbedder(model_name='AnnaWegmann/Style-Embedding')),
     (
