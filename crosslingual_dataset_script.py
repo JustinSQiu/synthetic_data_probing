@@ -124,5 +124,5 @@ def merge_csvs():
     return dataset
 
 dataset = merge_csvs()
-# dataset.push_to_hub('StyleDistance/multilingual_stel')
-dataset.push_to_hub('crosslingual_stel')
+dataset.push_to_hub('StyleDistance/crosslingual_stel')
+# dataset.push_to_hub('crosslingual_stel')

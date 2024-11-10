@@ -99,7 +99,7 @@ def get_embeddings_LISA(dataset_pos, dataset_neg, use_cached=True):
 
 def get_embeddings_LUAR(dataset_pos, dataset_neg, use_cached=True):
     if use_cached:
-        return load_embeddings('LISA')
+        return load_embeddings('LUAR')
     paired_embeddings = []
     model = load_luar_as_sentence_transformer('rrivera1849/LUAR-MUD')
     for i in range(len(dataset_pos) // NUM_ROWS_PER_CATEGORY):
@@ -117,7 +117,7 @@ def get_embeddings_LUAR(dataset_pos, dataset_neg, use_cached=True):
         ]
         paired = [(pos, neg) for pos, neg in zip(pos_embeddings, neg_embeddings)]
         paired_embeddings.append(tuple(paired))
-    save_embeddings(paired_embeddings, 'LISA')
+    save_embeddings(paired_embeddings, 'LUAR')
     return paired_embeddings
 
 
