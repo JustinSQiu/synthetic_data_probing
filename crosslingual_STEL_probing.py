@@ -1,8 +1,5 @@
 import math
-<<<<<<< HEAD
-=======
 import pickle
->>>>>>> 167d839 (crosslingual dataset)
 
 import numpy as np
 import pandas as pd
@@ -21,11 +18,7 @@ NUM_ROWS_PER_CATEGORY = 100
 
 with DataDreamer('./output'):
     stel_dataset = HFHubDataSource(
-<<<<<<< HEAD
-        'Lexical Features', path='justinsunqiu/multilingual_stel', split='data'
-=======
         'Lexical Features', path='justinsunqiu/multilingual_stel', split='train'
->>>>>>> 167d839 (crosslingual dataset)
     )
 
 def save_embeddings(paired_embeddings, filename):
@@ -80,13 +73,9 @@ def convert_embeddings(pos_embedded_data, neg_embedded_data):
     return paired_embeddings
 
 
-<<<<<<< HEAD
-def get_embeddings_LISA(dataset_pos, dataset_neg):
-=======
-def get_embeddings_LISA(dataset_pos, dataset_neg, use_cached=True):
+def get_embeddings_LISA(dataset_pos, dataset_neg, use_cached=True, save=False):
     if use_cached:
         return load_embeddings('LISA')
->>>>>>> 167d839 (crosslingual dataset)
     paired_embeddings = []
     model, tokenizer, embedder = load_lisa('stylegenome_lisa_sfam/lisa_checkpoint')
     for i in range(len(dataset_pos) // NUM_ROWS_PER_CATEGORY):
@@ -104,20 +93,14 @@ def get_embeddings_LISA(dataset_pos, dataset_neg, use_cached=True):
         ]
         paired = [(pos, neg) for pos, neg in zip(pos_embeddings, neg_embeddings)]
         paired_embeddings.append(tuple(paired))
-<<<<<<< HEAD
+    if save:
+        save_embeddings(paired_embeddings, 'LISA')
     return paired_embeddings
 
 
-def get_embeddings_LUAR(dataset_pos, dataset_neg):
-=======
-    save_embeddings(paired_embeddings, 'LISA')
-    return paired_embeddings
-
-
-def get_embeddings_LUAR(dataset_pos, dataset_neg, use_cached=True):
+def get_embeddings_LUAR(dataset_pos, dataset_neg, use_cached=True, save=False):
     if use_cached:
         return load_embeddings('LISA')
->>>>>>> 167d839 (crosslingual dataset)
     paired_embeddings = []
     model = load_luar_as_sentence_transformer('rrivera1849/LUAR-MUD')
     for i in range(len(dataset_pos) // NUM_ROWS_PER_CATEGORY):
@@ -135,10 +118,8 @@ def get_embeddings_LUAR(dataset_pos, dataset_neg, use_cached=True):
         ]
         paired = [(pos, neg) for pos, neg in zip(pos_embeddings, neg_embeddings)]
         paired_embeddings.append(tuple(paired))
-<<<<<<< HEAD
-=======
-    save_embeddings(paired_embeddings, 'LISA')
->>>>>>> 167d839 (crosslingual dataset)
+    if save:
+        save_embeddings(paired_embeddings, 'LISA')
     return paired_embeddings
 
 
@@ -210,6 +191,7 @@ def compute_accuracy_STEL_or_content(paired_embeddings: list):
 def STEL_benchmark(dataset_pos, dataset_neg, model_name, model, type='STEL'):
     if model_name == 'lisa':
         paired_embeddings = get_embeddings_LISA(dataset_pos, dataset_neg)
+        print(np.array(paired_embeddings).shape)
     elif model_name == 'luar':
         paired_embeddings = get_embeddings_LUAR(dataset_pos, dataset_neg)
     else:
@@ -264,11 +246,7 @@ def merge_dfs(dfs):
     return merged_df
 
 
-<<<<<<< HEAD
-tpe = 'STEL'
-=======
 tpe = 'STEL-or-content'
->>>>>>> 167d839 (crosslingual dataset)
 models = [
     ('Wegmann', SentenceTransformersEmbedder(model_name='AnnaWegmann/Style-Embedding')),
     (
@@ -290,10 +268,5 @@ models = [
 tables = [STEL_table(name, model, type=tpe) for name, model in models]
 merged_dfs = merge_dfs(tables)
 print(merged_dfs.to_markdown())
-<<<<<<< HEAD
-output_file = f'{tpe}.xlsx'
-merged_dfs.to_excel(output_file, index=False)
-=======
-# output_file = f'output_xlsx/{tpe}.xlsx'
+# output_file = f'{tpe}.xlsx'
 # merged_dfs.to_excel(output_file, index=False)
->>>>>>> 167d839 (crosslingual dataset)

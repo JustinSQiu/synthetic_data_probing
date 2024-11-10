@@ -161,7 +161,17 @@ cython_debug/
 
 .DS_Store
 .vscode
+project_venv
+
+output
+output_xlsx
+output_embeddings
+
 STEL
 Style-Embeddings
-output
-project_venv
+crosslingual_raw
+multilingual_raw
+luar_utils.py
+stylegenome_lisa_sfam
+
+test.ipynb
