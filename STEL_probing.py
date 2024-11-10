@@ -6,20 +6,17 @@ import pandas as pd
 from datadreamer import DataDreamer
 from datadreamer.embedders import Embedder, SentenceTransformersEmbedder
 from datadreamer.llms import OpenAI
-from datadreamer.steps import (CosineSimilarity, DataFromPrompt, Embed,
-                               HFHubDataSource, concat)
+from datadreamer.steps import CosineSimilarity, DataFromPrompt, Embed, HFHubDataSource, concat
 from transformers import AutoModel, AutoTokenizer
 
 from luar_utils import load_luar_as_sentence_transformer
-from stylegenome_lisa_sfam.lisa_inference_utils import (load_lisa,
-                                                        predict_lisa_embedder)
+from stylegenome_lisa_sfam.lisa_inference_utils import load_lisa, predict_lisa_embedder
 
 NUM_ROWS_PER_CATEGORY = 100
 
 with DataDreamer('./output'):
-    stel_dataset = HFHubDataSource(
-        'Lexical Features', path='justinsunqiu/multilingual_stel', split='train'
-    )
+    stel_dataset = HFHubDataSource('Lexical Features', path='justinsunqiu/multilingual_stel', split='train')
+
 
 def save_embeddings(paired_embeddings, filename):
     with open('output_embeddings/' + filename, 'wb') as file:
@@ -58,16 +55,8 @@ def compute_embeddings(dataset_pos, dataset_neg, model_name, model):
 def convert_embeddings(pos_embedded_data, neg_embedded_data):
     paired_embeddings = []
     for i in range(len(pos_embedded_data.output) // NUM_ROWS_PER_CATEGORY):
-        pos_embeddings = np.array(
-            pos_embedded_data.output['embeddings'][
-                i * NUM_ROWS_PER_CATEGORY : (i + 1) * NUM_ROWS_PER_CATEGORY
-            ]
-        )
-        neg_embeddings = np.array(
-            neg_embedded_data.output['embeddings'][
-                i * NUM_ROWS_PER_CATEGORY : (i + 1) * NUM_ROWS_PER_CATEGORY
-            ]
-        )
+        pos_embeddings = np.array(pos_embedded_data.output['embeddings'][i * NUM_ROWS_PER_CATEGORY : (i + 1) * NUM_ROWS_PER_CATEGORY])
+        neg_embeddings = np.array(neg_embedded_data.output['embeddings'][i * NUM_ROWS_PER_CATEGORY : (i + 1) * NUM_ROWS_PER_CATEGORY])
         paired = [(pos, neg) for pos, neg in zip(pos_embeddings, neg_embeddings)]
         paired_embeddings.append(paired)
     return paired_embeddings
@@ -81,15 +70,11 @@ def get_embeddings_LISA(dataset_pos, dataset_neg, use_cached=True):
     for i in range(len(dataset_pos) // NUM_ROWS_PER_CATEGORY):
         pos_embeddings = [
             predict_lisa_embedder(model, tokenizer, embedder, pos_text)
-            for pos_text in dataset_pos[
-                i * NUM_ROWS_PER_CATEGORY : (i + 1) * NUM_ROWS_PER_CATEGORY
-            ]
+            for pos_text in dataset_pos[i * NUM_ROWS_PER_CATEGORY : (i + 1) * NUM_ROWS_PER_CATEGORY]
         ]
         neg_embeddings = [
             predict_lisa_embedder(model, tokenizer, embedder, neg_text)
-            for neg_text in dataset_neg[
-                i * NUM_ROWS_PER_CATEGORY : (i + 1) * NUM_ROWS_PER_CATEGORY
-            ]
+            for neg_text in dataset_neg[i * NUM_ROWS_PER_CATEGORY : (i + 1) * NUM_ROWS_PER_CATEGORY]
         ]
         paired = [(pos, neg) for pos, neg in zip(pos_embeddings, neg_embeddings)]
         paired_embeddings.append(tuple(paired))
@@ -103,18 +88,8 @@ def get_embeddings_LUAR(dataset_pos, dataset_neg, use_cached=True):
     paired_embeddings = []
     model = load_luar_as_sentence_transformer('rrivera1849/LUAR-MUD')
     for i in range(len(dataset_pos) // NUM_ROWS_PER_CATEGORY):
-        pos_embeddings = [
-            model.encode(pos_text)
-            for pos_text in dataset_pos[
-                i * NUM_ROWS_PER_CATEGORY : (i + 1) * NUM_ROWS_PER_CATEGORY
-            ]
-        ]
-        neg_embeddings = [
-            model.encode(neg_text)
-            for neg_text in dataset_neg[
-                i * NUM_ROWS_PER_CATEGORY : (i + 1) * NUM_ROWS_PER_CATEGORY
-            ]
-        ]
+        pos_embeddings = [model.encode(pos_text) for pos_text in dataset_pos[i * NUM_ROWS_PER_CATEGORY : (i + 1) * NUM_ROWS_PER_CATEGORY]]
+        neg_embeddings = [model.encode(neg_text) for neg_text in dataset_neg[i * NUM_ROWS_PER_CATEGORY : (i + 1) * NUM_ROWS_PER_CATEGORY]]
         paired = [(pos, neg) for pos, neg in zip(pos_embeddings, neg_embeddings)]
         paired_embeddings.append(tuple(paired))
     save_embeddings(paired_embeddings, 'LUAR')
@@ -128,26 +103,18 @@ def compute_accuracy_STEL(paired_embeddings: list):
     incorrect = 0
     for i in range(len(paired_embeddings)):
         anchor_pos, anchor_neg = paired_embeddings[i]
-        norm_anchor_pos, norm_anchor_neg = anchor_pos / np.linalg.norm(
-            anchor_pos
-        ), anchor_neg / np.linalg.norm(anchor_neg)
+        norm_anchor_pos, norm_anchor_neg = anchor_pos / np.linalg.norm(anchor_pos), anchor_neg / np.linalg.norm(anchor_neg)
         for j in range(i + 1, len(paired_embeddings)):
             alt_pos, alt_neg = paired_embeddings[j]
-            norm_alt_pos, norm_alt_neg = alt_pos / np.linalg.norm(
-                alt_pos
-            ), alt_neg / np.linalg.norm(alt_neg)
+            norm_alt_pos, norm_alt_neg = alt_pos / np.linalg.norm(alt_pos), alt_neg / np.linalg.norm(alt_neg)
             sim1 = np.dot(norm_anchor_pos, norm_alt_pos)
             sim2 = np.dot(norm_anchor_neg, norm_alt_neg)
             sim3 = np.dot(norm_anchor_pos, norm_alt_neg)
             sim4 = np.dot(norm_anchor_neg, norm_alt_pos)
-            if math.pow(1 - sim1, 2) + math.pow(1 - sim2, 2) == math.pow(
-                1 - sim3, 2
-            ) + math.pow(1 - sim4, 2):
+            if math.pow(1 - sim1, 2) + math.pow(1 - sim2, 2) == math.pow(1 - sim3, 2) + math.pow(1 - sim4, 2):
                 accuracy += 0.5
                 rand += 1
-            elif math.pow(1 - sim1, 2) + math.pow(1 - sim2, 2) < math.pow(
-                1 - sim3, 2
-            ) + math.pow(1 - sim4, 2):
+            elif math.pow(1 - sim1, 2) + math.pow(1 - sim2, 2) < math.pow(1 - sim3, 2) + math.pow(1 - sim4, 2):
                 accuracy += 1
                 correct += 1
             else:
@@ -163,14 +130,10 @@ def compute_accuracy_STEL_or_content(paired_embeddings: list):
     incorrect = 0
     for i in range(len(paired_embeddings)):
         anchor_pos, anchor_neg = paired_embeddings[i]
-        norm_anchor_pos, norm_anchor_neg = anchor_pos / np.linalg.norm(
-            anchor_pos
-        ), anchor_neg / np.linalg.norm(anchor_neg)
+        norm_anchor_pos, norm_anchor_neg = anchor_pos / np.linalg.norm(anchor_pos), anchor_neg / np.linalg.norm(anchor_neg)
         for j in range(i + 1, len(paired_embeddings)):
             alt_pos, alt_neg = paired_embeddings[j]
-            norm_alt_pos, norm_alt_neg = alt_pos / np.linalg.norm(
-                alt_pos
-            ), alt_neg / np.linalg.norm(alt_neg)
+            norm_alt_pos, norm_alt_neg = alt_pos / np.linalg.norm(alt_pos), alt_neg / np.linalg.norm(alt_neg)
             norm_alt_neg = norm_anchor_neg
             sim1 = np.dot(norm_anchor_pos, norm_alt_pos)
             sim2 = np.dot(norm_anchor_pos, norm_alt_neg)
@@ -192,9 +155,7 @@ def STEL_benchmark(dataset_pos, dataset_neg, model_name, model, type='STEL'):
     elif model_name == 'luar':
         paired_embeddings = get_embeddings_LUAR(dataset_pos, dataset_neg)
     else:
-        pos_embedded_data, neg_embedded_data = compute_embeddings(
-            dataset_pos, dataset_neg, model_name, model
-        )
+        pos_embedded_data, neg_embedded_data = compute_embeddings(dataset_pos, dataset_neg, model_name, model)
         paired_embeddings = convert_embeddings(pos_embedded_data, neg_embedded_data)
     accuracies = []
     for paired in paired_embeddings:
@@ -210,9 +171,7 @@ def STEL_categories():
     categories = []
     for i in range(len(stel_dataset.output) // NUM_ROWS_PER_CATEGORY):
         categories.append(
-            stel_dataset.output['style_type'][i * NUM_ROWS_PER_CATEGORY]
-            + ' '
-            + stel_dataset.output['language'][i * NUM_ROWS_PER_CATEGORY]
+            stel_dataset.output['style_type'][i * NUM_ROWS_PER_CATEGORY] + ' ' + stel_dataset.output['language'][i * NUM_ROWS_PER_CATEGORY]
         )
     return categories
 
@@ -252,9 +211,7 @@ models = [
     ),
     (
         'StyleDistance Synthetic Only',
-        SentenceTransformersEmbedder(
-            model_name='SynthSTEL/styledistance_synthetic_only'
-        ),
+        SentenceTransformersEmbedder(model_name='SynthSTEL/styledistance_synthetic_only'),
     ),
     ('bert-base-cased', SentenceTransformersEmbedder('google-bert/bert-base-cased')),
     ('roberta-base', SentenceTransformersEmbedder('FacebookAI/roberta-base')),

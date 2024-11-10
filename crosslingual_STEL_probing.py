@@ -20,42 +20,40 @@ from stylegenome_lisa_sfam.lisa_inference_utils import load_lisa, predict_lisa_e
 
 NUM_ROWS_PER_CATEGORY = 100
 
-with DataDreamer('./output'):
-    stel_dataset = HFHubDataSource(
-        'Lexical Features', path='justinsunqiu/crosslingual_stel', split='train'
-    )
+with DataDreamer("./output"):
+    stel_dataset = HFHubDataSource("Lexical Features", path="justinsunqiu/crosslingual_stel", split="train")
 
 
 def save_embeddings(paired_embeddings, filename):
-    with open('output_embeddings/' + filename, 'wb') as file:
+    with open("output_embeddings/" + filename, "wb") as file:
         pickle.dump(paired_embeddings, file)
 
 
 def load_embeddings(filename):
-    with open('output_embeddings/' + filename, 'rb') as file:
+    with open("output_embeddings/" + filename, "rb") as file:
         paired_embeddings = pickle.load(file)
     return paired_embeddings
 
 
 def compute_embeddings(dataset_pos, dataset_neg, model_name, model):
-    with DataDreamer('./output'):
+    with DataDreamer("./output"):
         pos_embedded_data = Embed(
             name=f'{model_name.replace("/", " ")} Crosslingual Embeddings for Positive Examples',
-            inputs={'texts': dataset_pos},
+            inputs={"texts": dataset_pos},
             args={
-                'embedder': model,
-                'truncate': True,
+                "embedder": model,
+                "truncate": True,
             },
-            outputs={'texts': 'sentences', 'embeddings': 'embeddings'},
+            outputs={"texts": "sentences", "embeddings": "embeddings"},
         )
         neg_embedded_data = Embed(
             name=f'{model_name.replace("/", " ")} Crosslingual Embeddings for Negative Examples',
-            inputs={'texts': dataset_neg},
+            inputs={"texts": dataset_neg},
             args={
-                'embedder': model,
-                'truncate': True,
+                "embedder": model,
+                "truncate": True,
             },
-            outputs={'texts': 'sentences', 'embeddings': 'embeddings'},
+            outputs={"texts": "sentences", "embeddings": "embeddings"},
         )
     return pos_embedded_data, neg_embedded_data
 
@@ -63,16 +61,8 @@ def compute_embeddings(dataset_pos, dataset_neg, model_name, model):
 def convert_embeddings(pos_embedded_data, neg_embedded_data):
     paired_embeddings = []
     for i in range(len(pos_embedded_data.output) // NUM_ROWS_PER_CATEGORY):
-        pos_embeddings = np.array(
-            pos_embedded_data.output['embeddings'][
-                i * NUM_ROWS_PER_CATEGORY : (i + 1) * NUM_ROWS_PER_CATEGORY
-            ]
-        )
-        neg_embeddings = np.array(
-            neg_embedded_data.output['embeddings'][
-                i * NUM_ROWS_PER_CATEGORY : (i + 1) * NUM_ROWS_PER_CATEGORY
-            ]
-        )
+        pos_embeddings = np.array(pos_embedded_data.output["embeddings"][i * NUM_ROWS_PER_CATEGORY : (i + 1) * NUM_ROWS_PER_CATEGORY])
+        neg_embeddings = np.array(neg_embedded_data.output["embeddings"][i * NUM_ROWS_PER_CATEGORY : (i + 1) * NUM_ROWS_PER_CATEGORY])
         paired = [(pos, neg) for pos, neg in zip(pos_embeddings, neg_embeddings)]
         paired_embeddings.append(paired)
     return paired_embeddings
@@ -80,49 +70,35 @@ def convert_embeddings(pos_embedded_data, neg_embedded_data):
 
 def get_embeddings_LISA(dataset_pos, dataset_neg, use_cached=True):
     if use_cached:
-        return load_embeddings('LISA_crosslingual')
+        return load_embeddings("LISA_crosslingual")
     paired_embeddings = []
-    model, tokenizer, embedder = load_lisa('stylegenome_lisa_sfam/lisa_checkpoint')
+    model, tokenizer, embedder = load_lisa("stylegenome_lisa_sfam/lisa_checkpoint")
     for i in range(len(dataset_pos) // NUM_ROWS_PER_CATEGORY):
         pos_embeddings = [
             predict_lisa_embedder(model, tokenizer, embedder, pos_text)
-            for pos_text in dataset_pos[
-                i * NUM_ROWS_PER_CATEGORY : (i + 1) * NUM_ROWS_PER_CATEGORY
-            ]
+            for pos_text in dataset_pos[i * NUM_ROWS_PER_CATEGORY : (i + 1) * NUM_ROWS_PER_CATEGORY]
         ]
         neg_embeddings = [
             predict_lisa_embedder(model, tokenizer, embedder, neg_text)
-            for neg_text in dataset_neg[
-                i * NUM_ROWS_PER_CATEGORY : (i + 1) * NUM_ROWS_PER_CATEGORY
-            ]
+            for neg_text in dataset_neg[i * NUM_ROWS_PER_CATEGORY : (i + 1) * NUM_ROWS_PER_CATEGORY]
         ]
         paired = [(pos, neg) for pos, neg in zip(pos_embeddings, neg_embeddings)]
         paired_embeddings.append(tuple(paired))
-    save_embeddings(paired_embeddings, 'LISA_crosslingual')
+    save_embeddings(paired_embeddings, "LISA_crosslingual")
     return paired_embeddings
 
 
 def get_embeddings_LUAR(dataset_pos, dataset_neg, use_cached=True):
     if use_cached:
-        return load_embeddings('LUAR_crosslingual')
+        return load_embeddings("LUAR_crosslingual")
     paired_embeddings = []
-    model = load_luar_as_sentence_transformer('rrivera1849/LUAR-MUD')
+    model = load_luar_as_sentence_transformer("rrivera1849/LUAR-MUD")
     for i in range(len(dataset_pos) // NUM_ROWS_PER_CATEGORY):
-        pos_embeddings = [
-            model.encode(pos_text)
-            for pos_text in dataset_pos[
-                i * NUM_ROWS_PER_CATEGORY : (i + 1) * NUM_ROWS_PER_CATEGORY
-            ]
-        ]
-        neg_embeddings = [
-            model.encode(neg_text)
-            for neg_text in dataset_neg[
-                i * NUM_ROWS_PER_CATEGORY : (i + 1) * NUM_ROWS_PER_CATEGORY
-            ]
-        ]
+        pos_embeddings = [model.encode(pos_text) for pos_text in dataset_pos[i * NUM_ROWS_PER_CATEGORY : (i + 1) * NUM_ROWS_PER_CATEGORY]]
+        neg_embeddings = [model.encode(neg_text) for neg_text in dataset_neg[i * NUM_ROWS_PER_CATEGORY : (i + 1) * NUM_ROWS_PER_CATEGORY]]
         paired = [(pos, neg) for pos, neg in zip(pos_embeddings, neg_embeddings)]
         paired_embeddings.append(tuple(paired))
-    save_embeddings(paired_embeddings, 'LUAR_crosslingual')
+    save_embeddings(paired_embeddings, "LUAR_crosslingual")
     return paired_embeddings
 
 
@@ -133,28 +109,20 @@ def compute_accuracy_STEL(paired_embeddings_1: list, paired_embeddings_2: list):
     incorrect = 0
     for i in range(len(paired_embeddings_1)):
         anchor_pos, anchor_neg = paired_embeddings_1[i]  # L1C1S1, L1C1S2
-        norm_anchor_pos, norm_anchor_neg = anchor_pos / np.linalg.norm(
-            anchor_pos
-        ), anchor_neg / np.linalg.norm(anchor_neg)
+        norm_anchor_pos, norm_anchor_neg = anchor_pos / np.linalg.norm(anchor_pos), anchor_neg / np.linalg.norm(anchor_neg)
         for j in range(len(paired_embeddings_2)):
             if i == j:
                 continue  # Skip when content is equal
             alt_pos, alt_neg = paired_embeddings_2[j]  # L2C2S1 L2C2S2
-            norm_alt_pos, norm_alt_neg = alt_pos / np.linalg.norm(
-                alt_pos
-            ), alt_neg / np.linalg.norm(alt_neg)
+            norm_alt_pos, norm_alt_neg = alt_pos / np.linalg.norm(alt_pos), alt_neg / np.linalg.norm(alt_neg)
             sim1 = np.dot(norm_anchor_pos, norm_alt_pos)
             sim2 = np.dot(norm_anchor_neg, norm_alt_neg)
             sim3 = np.dot(norm_anchor_pos, norm_alt_neg)
             sim4 = np.dot(norm_anchor_neg, norm_alt_pos)
-            if math.pow(1 - sim1, 2) + math.pow(1 - sim2, 2) == math.pow(
-                1 - sim3, 2
-            ) + math.pow(1 - sim4, 2):
+            if math.pow(1 - sim1, 2) + math.pow(1 - sim2, 2) == math.pow(1 - sim3, 2) + math.pow(1 - sim4, 2):
                 accuracy += 0.5
                 rand += 1
-            elif math.pow(1 - sim1, 2) + math.pow(1 - sim2, 2) < math.pow(
-                1 - sim3, 2
-            ) + math.pow(1 - sim4, 2):
+            elif math.pow(1 - sim1, 2) + math.pow(1 - sim2, 2) < math.pow(1 - sim3, 2) + math.pow(1 - sim4, 2):
                 accuracy += 1
                 correct += 1
             else:
@@ -163,9 +131,7 @@ def compute_accuracy_STEL(paired_embeddings_1: list, paired_embeddings_2: list):
     return accuracy / (len(paired_embeddings_1) * (len(paired_embeddings_2) - 1))  # don't divide by 2 because we are doing every combination
 
 
-def compute_accuracy_STEL_or_content(
-    paired_embeddings_1: list, paired_embeddings_2: list
-):
+def compute_accuracy_STEL_or_content(paired_embeddings_1: list, paired_embeddings_2: list):
     accuracy = 0
     correct = 0
     rand = 0
@@ -174,10 +140,7 @@ def compute_accuracy_STEL_or_content(
         anchor_pos, _ = paired_embeddings_1[i]  # L1C1S1, L1C1S2
         norm_anchor_pos, _ = anchor_pos / np.linalg.norm(anchor_pos), _
         _, same_content_diff_language_style = paired_embeddings_2[i]  # L2C1S2
-        norm_same_content_diff_language_style = (
-            same_content_diff_language_style
-            / np.linalg.norm(same_content_diff_language_style)
-        )
+        norm_same_content_diff_language_style = same_content_diff_language_style / np.linalg.norm(same_content_diff_language_style)
         for j in range(len(paired_embeddings_2)):
             if i == j:
                 continue  # Skip when content is equal
@@ -198,24 +161,22 @@ def compute_accuracy_STEL_or_content(
     return accuracy / (len(paired_embeddings_1) * (len(paired_embeddings_2) - 1))  # don't divide by 2 because we are doing every combination
 
 
-def STEL_benchmark(dataset_pos, dataset_neg, model_name, model, type='STEL'):
-    if model_name == 'lisa':
+def STEL_benchmark(dataset_pos, dataset_neg, model_name, model, type="STEL"):
+    if model_name == "lisa":
         paired_embeddings = get_embeddings_LISA(dataset_pos, dataset_neg)
-    elif model_name == 'luar':
+    elif model_name == "luar":
         paired_embeddings = get_embeddings_LUAR(dataset_pos, dataset_neg)
     else:
-        pos_embedded_data, neg_embedded_data = compute_embeddings(
-            dataset_pos, dataset_neg, model_name, model
-        )
+        pos_embedded_data, neg_embedded_data = compute_embeddings(dataset_pos, dataset_neg, model_name, model)
         paired_embeddings = convert_embeddings(pos_embedded_data, neg_embedded_data)
     accuracies = []
     for i in range(len(paired_embeddings)):
         paired_1 = paired_embeddings[i]
         for j in range(i + 1, len(paired_embeddings)):
             paired_2 = paired_embeddings[j]
-            if type == 'STEL':
+            if type == "STEL":
                 accuracies.append(compute_accuracy_STEL(paired_1, paired_2))
-            elif type == 'STEL-or-content':
+            elif type == "STEL-or-content":
                 accuracies.append(compute_accuracy_STEL_or_content(paired_1, paired_2))
     avg_accuracy = np.mean(accuracies)
     return accuracies, avg_accuracy
@@ -226,30 +187,30 @@ def STEL_categories():
     for i in range(len(stel_dataset.output) // NUM_ROWS_PER_CATEGORY):
         for j in range(i + 1, len(stel_dataset.output) // NUM_ROWS_PER_CATEGORY):
             categories.append(
-                stel_dataset.output['style_type'][i * NUM_ROWS_PER_CATEGORY]
-                + ' '
-                + stel_dataset.output['language'][i * NUM_ROWS_PER_CATEGORY]
-                + '-'
-                + stel_dataset.output['language'][j * NUM_ROWS_PER_CATEGORY]
+                stel_dataset.output["style_type"][i * NUM_ROWS_PER_CATEGORY]
+                + " "
+                + stel_dataset.output["language"][i * NUM_ROWS_PER_CATEGORY]
+                + "-"
+                + stel_dataset.output["language"][j * NUM_ROWS_PER_CATEGORY]
             )
     return categories
 
 
-def STEL_table(model_name, model=None, type='STEL'):
+def STEL_table(model_name, model=None, type="STEL"):
     if not model:
         model = SentenceTransformersEmbedder(model_name=model)
 
     accuracies, avg_accuracy = STEL_benchmark(
-        stel_dataset.output['positive'],
-        stel_dataset.output['negative'],
+        stel_dataset.output["positive"],
+        stel_dataset.output["negative"],
         model_name,
         model,
         type,
     )
     accuracies.append(avg_accuracy)
     categories = STEL_categories()
-    categories.append('average')
-    data = {'Metric': categories, f'{model_name} Embeddings': accuracies}
+    categories.append("average")
+    data = {"Metric": categories, f"{model_name} Embeddings": accuracies}
     print(data)
     df = pd.DataFrame(data)
     return df
@@ -257,32 +218,30 @@ def STEL_table(model_name, model=None, type='STEL'):
 
 def merge_dfs(dfs):
     for df in dfs:
-        df.set_index('Metric', inplace=True)
+        df.set_index("Metric", inplace=True)
     merged_df = pd.concat(dfs, axis=1)
     return merged_df
 
 
-tpe = 'STEL-or-content'
+tpe = "STEL-or-content"
 models = [
-    ('Wegmann', SentenceTransformersEmbedder(model_name='AnnaWegmann/Style-Embedding')),
+    ("Wegmann", SentenceTransformersEmbedder(model_name="AnnaWegmann/Style-Embedding")),
     (
-        'StyleDistance',
-        SentenceTransformersEmbedder(model_name='SynthSTEL/styledistance'),
+        "StyleDistance",
+        SentenceTransformersEmbedder(model_name="SynthSTEL/styledistance"),
     ),
     (
-        'StyleDistance Synthetic Only',
-        SentenceTransformersEmbedder(
-            model_name='SynthSTEL/styledistance_synthetic_only'
-        ),
+        "StyleDistance Synthetic Only",
+        SentenceTransformersEmbedder(model_name="SynthSTEL/styledistance_synthetic_only"),
     ),
-    ('bert-base-cased', SentenceTransformersEmbedder('google-bert/bert-base-cased')),
-    ('roberta-base', SentenceTransformersEmbedder('FacebookAI/roberta-base')),
-    ('xlm-roberta-base', SentenceTransformersEmbedder('FacebookAI/xlm-roberta-base')),
-    ('lisa', None),
-    ('luar', None),
+    ("bert-base-cased", SentenceTransformersEmbedder("google-bert/bert-base-cased")),
+    ("roberta-base", SentenceTransformersEmbedder("FacebookAI/roberta-base")),
+    ("xlm-roberta-base", SentenceTransformersEmbedder("FacebookAI/xlm-roberta-base")),
+    ("lisa", None),
+    ("luar", None),
 ]
 tables = [STEL_table(name, model, type=tpe) for name, model in models]
 merged_dfs = merge_dfs(tables)
 print(merged_dfs.to_markdown())
-output_file = f'output_xlsx/{tpe}_crosslingual.xlsx'
+output_file = f"output_xlsx/{tpe}_crosslingual.xlsx"
 merged_dfs.to_excel(output_file, index=False)

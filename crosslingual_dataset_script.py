@@ -63,17 +63,20 @@ language_map = {
     'ar': 'ar',
     'es': 'es',
     'zh': 'zh',
-    'de': 'de'
+    'de': 'de',
 }
+
 
 def get_paired_tsv(df):
     pairwise_combinations = list(itertools.combinations(df.index, 2))
-    pairwise_df = pd.DataFrame({
-        'anchor_1': [df.loc[i, 'positive'] for i, j in pairwise_combinations],
-        'alternative_1': [df.loc[i, 'negative'] for i, j in pairwise_combinations],
-        'anchor_2': [df.loc[j, 'positive'] for i, j in pairwise_combinations],
-        'alternative_2': [df.loc[j, 'negative'] for i, j in pairwise_combinations],
-    })
+    pairwise_df = pd.DataFrame(
+        {
+            'anchor_1': [df.loc[i, 'positive'] for i, j in pairwise_combinations],
+            'alternative_1': [df.loc[i, 'negative'] for i, j in pairwise_combinations],
+            'anchor_2': [df.loc[j, 'positive'] for i, j in pairwise_combinations],
+            'alternative_2': [df.loc[j, 'negative'] for i, j in pairwise_combinations],
+        }
+    )
     return pairwise_df
 
 
@@ -112,16 +115,24 @@ def convert_formal_crosslingual():
         # pairwise_df.to_csv(pairwise_tsv_file, sep='\t', index=False)
         print(f'TSV file saved for {lang} at {tsv_file}')
 
+
+def convert_formal_crosslingual_stel():
+    pass
+
+
+def convert_formal_crosslingual_stel_or_content():
+    pass
+
+
 convert_formal_crosslingual()
 
 
 def merge_csvs():
     all_files = glob.glob('crosslingual_raw_output/*/*.tsv')
     df = pd.concat((pd.read_csv(file, sep='\t') for file in all_files), ignore_index=True)
-    dataset = DatasetDict({
-        'train': Dataset.from_pandas(df)
-    })
+    dataset = DatasetDict({'train': Dataset.from_pandas(df)})
     return dataset
+
 
 dataset = merge_csvs()
 # dataset.push_to_hub('StyleDistance/crosslingual_stel')
