@@ -204,6 +204,15 @@ def convert_formal_crosslingual_stel_or_content():
                     alt_pos, _ = paired_2[l]  # L2C2S1 L2C2S2
                     alt_neg = same_content_diff_language_style
                     rows.append([anchor_pos, '', alt_pos, alt_neg])
+            for k in range(len(paired_1)):
+                _, anchor_neg = paired_1[k]  # L1C1S1, L1C1S2
+                same_content_diff_language_style, _ = paired_2[k]  # L2C1S1
+                for l in range(len(paired_2)):
+                    if k == l:
+                        continue  # Skip when content is equal
+                    _, alt_neg = paired_2[l]  # L2C2S1 L2C2S2
+                    alt_pos = same_content_diff_language_style
+                    rows.append([anchor_neg, '', alt_neg, alt_pos])
             df = pd.DataFrame(rows, columns=['anchor_1', 'alternative_1', 'anchor_2', 'alternative_2'])
             df['style_type'] = 'formality'
             df['language_1'] = languages[i]

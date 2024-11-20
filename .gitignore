@@ -166,6 +166,7 @@ project_venv
 output
 output_xlsx
 output_embeddings
+*.zip
 
 STEL
 Style-Embeddings
