@@ -178,7 +178,7 @@ def compute_accuracy_STEL_or_content(paired_embeddings_1: list, paired_embedding
                 alt_pos, _, real_alt_pos, _ = paired_embeddings_2[j]  # L2C2S1, L2C2S2
             norm_alt_pos, _ = alt_pos / np.linalg.norm(alt_pos), _
             norm_alt_neg = norm_same_content_diff_language_style
-            sim1 = np.dot(norm_anchor_pos, norm_alt_pos)  # L1C1S1, L2C2S1
+            sim1 = np.dot(norm_anchor_pos, norm_alt_pos)  # L1C1S1, L2C2S1k
             sim2 = np.dot(norm_anchor_pos, norm_alt_neg)  # L1C1S1, L2C1S2
             if DEBUG:
                 print(f'{real_anchor_pos=}, {real_same_content_diff_language_style=}, {real_alt_pos=}, {_=}')
